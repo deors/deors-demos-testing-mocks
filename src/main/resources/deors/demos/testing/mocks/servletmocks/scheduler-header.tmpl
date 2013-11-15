@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC
+          "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <title>Scheduler Command Center</title>
+        <script language="javascript" type="text/javascript">
+            //<![CDATA[
+            function commandRefresh()
+            {
+                document.forms.commandForm.command.value = "";
+                document.forms.commandForm.submit();
+            }
+
+            function commandHelp()
+            {
+                document.forms.commandForm.command.value = "help";
+                document.forms.commandForm.submit();
+            }
+
+            function commandStart()
+            {
+                document.forms.commandForm.command.value = "start";
+                document.forms.commandForm.submit();
+            }
+
+            function commandStop()
+            {
+                document.forms.commandForm.command.value = "stop";
+                document.forms.commandForm.taskName.value = "";
+                document.forms.commandForm.submit();
+            }
+
+            function commandAdd()
+            {
+                var error = false;
+                var message = "the following fields are required or are not valid:";
+
+                document.forms.commandForm.command.value = "add";
+
+                if (document.forms.commandForm.taskName.value.length == 0)
+                {
+                    error = true;
+                    message += "\n  the task name";
+                }
+                if (document.forms.commandForm.taskDescription.value.length == 0)
+                {
+                    error = true;
+                    message += "\n  the task description";
+                }
+                if (document.forms.commandForm.taskClassName.value.length == 0)
+                {
+                    error = true;
+                    message += "\n  the task class name";
+                }
+                if (!validateTime(document.forms.commandForm.taskStartTime.value))
+                {
+                    error = true;
+                    message += "\n  the task start time must be written in HH:MM:SS format or an asterisk (\"*\") for daemons";
+                }
+                if (!validateTime(document.forms.commandForm.taskStopTime.value))
+                {
+                    error = true;
+                    message += "\n  the task stop time must be written in HH:MM:SS format or an asterisk (\"*\") for daemons";
+                }
+
+                if (error)
+                {
+                    window.alert(message);
+                }
+                else
+                {
+                    document.forms.commandForm.submit();
+                }
+            }
+
+            function taskStart(taskName)
+            {
+                document.forms.taskForm.command.value = "schedule";
+                document.forms.taskForm.taskName.value = taskName;
+                document.forms.taskForm.taskStartTime.value = "*";
+                document.forms.taskForm.taskStopTime.value = "*";
+                document.forms.taskForm.submit();
+            }
+
+            function taskSchedule(taskName, taskStartTime, taskStopTime)
+            {
+                var error = false;
+                var message = "the following fields are required or are not valid:";
+
+                document.forms.taskForm.command.value = "schedule";
+                document.forms.taskForm.taskName.value = taskName;
+                document.forms.taskForm.taskStartTime.value = taskStartTime;
+                document.forms.taskForm.taskStopTime.value = taskStopTime;
+
+                if (!validateTime(taskStartTime))
+                {
+                    error = true;
+                    message += "\n  the task start time must be written in HH:MM:SS format or an asterisk (\"*\") for daemons";
+                }
+                if (!validateTime(taskStopTime))
+                {
+                    error = true;
+                    message += "\n  the task stop time must be written in HH:MM:SS format or an asterisk (\"*\") for daemons";
+                }
+
+                if (error)
+                {
+                    window.alert(message);
+                }
+                else
+                {
+                    document.forms.taskForm.submit();
+                }
+            }
+
+            function taskStop(taskName)
+            {
+                document.forms.taskForm.command.value = "stop";
+                document.forms.taskForm.taskName.value = taskName;
+                document.forms.taskForm.submit();
+            }
+
+            function taskRemove(taskName)
+            {
+                document.forms.taskForm.command.value = "remove";
+                document.forms.taskForm.taskName.value = taskName;
+                document.forms.taskForm.submit();
+            }
+
+            function taskKill(taskName)
+            {
+                document.forms.taskForm.command.value = "kill";
+                document.forms.taskForm.taskName.value = taskName;
+                document.forms.taskForm.submit();
+            }
+
+            function validateTime(time)
+            {
+                if (time == "*")
+                {
+                    return true;
+                }
+
+                if (time.length > 8)
+                {
+                    return false;
+                }
+
+                var tokens = time.split(":");
+
+                if (tokens.length != 3)
+                {
+                    return false;
+                }
+
+                if (tokens[0].length > 2 || tokens[1].length != 2 || tokens[2].length != 2)
+                {
+                    return false;
+                }
+
+                var hourPart = parseInt(tokens[0], 10);
+                var minPart = parseInt(tokens[1], 10);
+                var secPart = parseInt(tokens[2], 10);
+
+                if (isNaN(hourPart) || isNaN(minPart) || isNaN(secPart))
+                {
+                    return false;
+                }
+
+                if ((hourPart != tokens[0] && "0" + String(hourPart) != tokens[0])
+                    || (minPart != tokens[1] && "0" + String(minPart) != tokens[1])
+                    || (secPart != tokens[2] && "0" + String(secPart) != tokens[2]))
+                {
+                    return false;
+                }
+
+                if (hourPart < 0 || hourPart > 23
+                    || minPart < 0 || minPart > 59
+                    || secPart < 0 || secPart > 59)
+                {
+                    return false;
+                }
+
+                return true;
+            }
+            //]]>
+        </script>
+    </head>
+
+    <body bgcolor="#103080" text="#efefef">
+        <h1>Scheduler Command Center</h1>

@@ -1,0 +1,14 @@
+                            <input type="button" name="start" value="start"
+                                   onclick="taskStart('[TASK_NAME]')"/>&nbsp;&nbsp;
+                            <input type="button" name="remove" value="remove"
+                                   onclick="taskRemove('[TASK_NAME]')"/>&nbsp;&nbsp;
+                            <input type="button" name="schedule" value="schedule"
+                                   onclick="taskSchedule('[TASK_NAME]', document.forms.taskForm.taskStartTime[I].value, document.forms.taskForm.taskStopTime[I].value)"/>&nbsp;&nbsp;
+                            task start time:&nbsp;
+                            <input type="text" id="taskStartTime[I]" name="taskStartTime[I]"
+                                   size="8" maxlength="8"/>&nbsp;&nbsp;
+                            task stop time:&nbsp;
+                            <input type="text" id="taskStopTime[I]" name="taskStopTime[I]"
+                                   size="8" maxlength="8"/><br/><br/>
+                        </td>
+                    </tr>

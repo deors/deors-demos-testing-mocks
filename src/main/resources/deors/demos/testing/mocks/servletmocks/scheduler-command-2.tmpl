@@ -1,0 +1,16 @@
+        <form id="commandForm" name="commandForm" method="post" action="[ACTION]">
+            <p>
+                <input type="hidden" id="command" name="command"/>
+                <table border="0">
+                    <tr>
+                        <td colspan="2">
+                            <input type="button" name="refresh" value="refresh"
+                                   onclick="commandRefresh()"/>&nbsp;&nbsp;
+                            <input type="button" name="help" value="help"
+                                   onclick="commandHelp()"/>&nbsp;&nbsp;
+                            <input type="button" name="start" value="start"
+                                   onclick="commandStart()"/>&nbsp;&nbsp;
+                            <input type="text" id="iniFileName" name="iniFileName"
+                                   size="25" maxlength="128"/>
+                        </td>
+                    </tr>
