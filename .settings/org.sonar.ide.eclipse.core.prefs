@@ -1,7 +1,0 @@
-analyseLocally=false
-eclipse.preferences.version=1
-extraProperties=sonar.jdbc.password\=sonarsonar\r\nsonar.squid.analyse.property.accessors\=false\r\nsonar.findbugs.excludesFilters\=C\:\\projects\\deors.demos\\testing\\deors.demos.testing.mocks/findbugs-filter.xml\r\nsonar.jdbc.username\=sonar\r\nsonar.jdbc.url\=jdbc\:mysql\://localhost\:3306/sonar?useUnicode\=true&characterEncoding\=utf8\r\nsonar.jdbc.driver\=com.mysql.jdbc.Driver\r\nsonar.reuseExistingRulesConfiguration\=true\r\nsonar.host.url\=http\://localhost\:9000
-lastAnalysisDate=1381314815000
-projectKey=deors.demos\:deors.demos.testing.mocks
-serverUrl=http\://localhost\:9000
-version=2
