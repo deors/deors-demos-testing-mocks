@@ -19,12 +19,11 @@
         <sonar.findbugs.excludesFilters>${project.basedir}/findbugs-filter.xml</sonar.findbugs.excludesFilters>
 
         <java.version>1.7</java.version>
-        <servlet.version>3.0</servlet.version>
-        <jpa.version>1.0.0</jpa.version>
+        <servlet.version>3.0.1</servlet.version>
+        <jpa.version>1.0</jpa.version>
 
-        <ldap.version>20060928</ldap.version>
+        <ldap.version>2009-10-07</ldap.version>
         <spring.version>3.0.6.RELEASE</spring.version>
-
 
         <junit.version>4.10</junit.version>
         <easymock.version>3.1</easymock.version>
@@ -57,17 +56,17 @@
     <dependencies>
         <dependency>
             <groupId>javax.servlet</groupId>
-            <artifactId>servlet</artifactId>
+            <artifactId>javax.servlet-api</artifactId>
             <version>${servlet.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.persistence</groupId>
-            <artifactId>com.springsource.javax.persistence</artifactId>
+            <artifactId>persistence-api</artifactId>
             <version>${jpa.version}</version>
         </dependency>
         <dependency>
-            <groupId>novell</groupId>
-            <artifactId>ldap</artifactId>
+            <groupId>com.novell.ldap</groupId>
+            <artifactId>jldap</artifactId>
             <version>${ldap.version}</version>
         </dependency>
         <dependency>
