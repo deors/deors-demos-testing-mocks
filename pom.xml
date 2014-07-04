@@ -25,9 +25,9 @@
         <ldap.version>2009-10-07</ldap.version>
         <spring.version>3.0.6.RELEASE</spring.version>
 
-        <junit.version>4.10</junit.version>
-        <easymock.version>3.1</easymock.version>
-        <powermock.version>1.5.1</powermock.version>
+        <junit.version>4.11</junit.version>
+        <easymock.version>3.2</easymock.version>
+        <powermock.version>1.5.5</powermock.version>
     </properties>
 
     <build>
