@@ -1,10 +1,10 @@
 package deors.demos.testing.mocks.servletmocks;
 
 /**
- * Generic exception class for template processing.<br>
+ * Generic exception class for template processing.
  *
- * @author jorge.hidalgo
- * @version 2.5
+ * @author deors
+ * @version 1.0
  */
 public final class TemplateException
     extends Exception {

@@ -3,14 +3,14 @@ package deors.demos.testing.mocks.servletmocks;
 import java.util.Calendar;
 
 /**
- * Abstract class that represents a scheduler task.<br>
+ * Abstract class that represents a scheduler task.
  *
  * Classes that extends <code>SchedulerTask</code> must implement the
  * <code>taskPrepareStart()</code>, <code>taskPrepareStop()</code> and <code>taskLogic()</code>
- * methods.<br>
+ * methods.
  *
- * @author jorge.hidalgo
- * @version 2.4
+ * @author deors
+ * @version 1.0
  */
 public abstract class SchedulerTask
     implements Runnable {
@@ -112,12 +112,12 @@ public abstract class SchedulerTask
     /**
      * Text used in the <code>toString()</code> method to surround the task description.
      */
-    private static final String TASK_DESCRIPTION_END = ")";
+    private static final String TASK_DESCRIPTION_END = ")"; //$NON-NLS-1$
 
     /**
      * Text used in the <code>toString()</code> method to surround the task description.
      */
-    private static final String TASK_DESCRIPTION_START = " (";
+    private static final String TASK_DESCRIPTION_START = " ("; //$NON-NLS-1$
 
     /**
      * The finalizer guardian.
@@ -313,6 +313,8 @@ public abstract class SchedulerTask
         } catch (ThreadDeath td) {
             taskThread = null;
 
+            info("SCHED_LOG_TASK_KILLED_VM"); //$NON-NLS-1$
+
             throw td;
 
         // CHECKSTYLE:OFF
@@ -320,6 +322,8 @@ public abstract class SchedulerTask
         // CHECKSTYLE:ON
 
             taskThread = null;
+
+            info("SCHED_LOG_ERR_TASK_RUNNING"); //$NON-NLS-1$
         }
 
         if (taskThread == null) {
@@ -432,6 +436,8 @@ public abstract class SchedulerTask
     protected void taskAutoStop() {
 
         if (executing && !stopping) {
+            info("SCHED_LOG_TASK_STOPPING"); //$NON-NLS-1$
+
             taskThread = null;
 
             setTaskNextStartTime(null);
@@ -447,9 +453,14 @@ public abstract class SchedulerTask
                 if (daemonTask) {
                     daemonExecuted = true;
                 }
+
+                info("SCHED_LOG_TASK_STOPPED"); //$NON-NLS-1$
+
             // CHECKSTYLE:OFF
             } catch (Throwable t) {
             // CHECKSTYLE:ON
+
+                info("SCHED_LOG_ERR_TASK_STOPPING"); //$NON-NLS-1$
             }
         }
     }
@@ -465,6 +476,8 @@ public abstract class SchedulerTask
     @SuppressWarnings("deprecation")
     void taskKill() {
 
+        info("SCHED_LOG_TASK_KILLING"); //$NON-NLS-1$
+
         if (taskThread != null) {
             taskThread.stop();
         }
@@ -472,6 +485,8 @@ public abstract class SchedulerTask
             taskThread4Kill.stop();
         }
         taskAutoStop();
+
+        info("SCHED_LOG_TASK_KILLED"); //$NON-NLS-1$
     }
 
     /**
@@ -508,6 +523,8 @@ public abstract class SchedulerTask
     void taskStart() {
 
         if (!starting && !executing && !stopping) {
+            info("SCHED_LOG_TASK_STARTING"); //$NON-NLS-1$
+
             try {
                 daemonExecuted = false;
 
@@ -520,16 +537,25 @@ public abstract class SchedulerTask
                 taskThread = new Thread(this);
                 taskThread.start();
 
+                info("SCHED_LOG_TASK_STARTED"); //$NON-NLS-1$
+
             // CHECKSTYLE:OFF
             } catch (Throwable t) {
             // CHECKSTYLE:ON
 
                 taskThread = null;
 
+                starting = false;
                 executing = false;
+
+                if (daemonTask) {
+                    daemonExecuted = true;
+                }
 
                 setTaskNextStartTime(null);
                 setTaskNextStopTime(null);
+
+                info("SCHED_LOG_ERR_TASK_STARTING"); //$NON-NLS-1$
             }
         }
     }
@@ -542,6 +568,7 @@ public abstract class SchedulerTask
     void taskStop() {
 
         if (taskThread != null) {
+            info("SCHED_LOG_TASK_ASKED_STOP"); //$NON-NLS-1$
             taskThread4Kill = taskThread;
             taskThread = null;
         }
@@ -555,5 +582,14 @@ public abstract class SchedulerTask
     public String toString() {
 
         return taskName + TASK_DESCRIPTION_START + taskDescription + TASK_DESCRIPTION_END;
+    }
+
+    /**
+     * Dummy log method.
+     *
+     * @param message the log message
+     */
+    private static void info(String message) {
+        System.out.println(message);
     }
 }

@@ -1,6 +1,8 @@
 package deors.demos.testing.mocks.servletmocks;
 
 import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -10,25 +12,28 @@ import java.util.Locale;
 import java.util.NoSuchElementException;
 
 /**
- * Task scheduler.<br>
+ * Task scheduler.
  *
  * The tasks are read from an INI configuration file. Each task appears as a section in the INI
- * file, and the task name is the section name. Inside a section, four entries configures the task:<br>
+ * file, and the task name is the section name. Inside a section, four entries configures the task:
+ *
+ * <ol>
  * <li><code>class</code> is the fully qualified name of the class that implements the task.</li>
  * <li><code>description</code> is the description used when showing task information.</li>
  * <li><code>start</code> is the task start time in HH:MM:SS format.</li>
- * <li><code>stop</code> is the task stop time in HH:MM:SS format.</li><br>
+ * <li><code>stop</code> is the task stop time in HH:MM:SS format.</li>
+ * </ol>
  *
  * When the task start time equals the string <code>*</code> (the configurable daemon id string)
- * the task is then a daemon, and does not stop until the task itself ends.<br>
+ * the task is then a daemon, and does not stop until the task itself ends.
  *
  * The tasks are implemented extending the abstract class <code>SchedulerTask</code>.
  *
  * By default new tasks are loaded using the scheduler thread class loader, but it can
- * be configured to use any initialized class loader.<br>
+ * be configured to use any initialized class loader.
  *
- * @author jorge.hidalgo
- * @version 2.5
+ * @author deors
+ * @version 1.0
  */
 public final class Scheduler
     extends Thread {
@@ -59,39 +64,47 @@ public final class Scheduler
     private SimpleDateFormat dateFormatter;
 
     /**
-     * Default value for <code>DATE_FORMAT</code> property.
+     * String that identifies a daemon task. Configurable in the properties file using the key
+     * <code>sched.daemonId</code>. Default value is <code>*</code>.
+     * default value.
+     *
+     * @see CommonsContext#getConfigurationProperty(String, String)
      */
-    private static final String DATE_FORMAT = "yyyy/MM/dd HH:mm:ss";
+    public static final String DAEMON_ID = "*"; //$NON-NLS-1$
 
     /**
-     * String that identifies a daemon task.
+     * Date format string used to print time information in the scheduler messages (not the same
+     * that the time information printed by the default log). Configurable in the properties file
+     * using the key <code>sched.dateFormat</code>. Default value is <code>yyyy/MM/dd HH:mm:ss</code>.
+     *
+     * @see CommonsContext#getConfigurationProperty(String, String)
      */
-    public static final String DAEMON_ID = "*";
+    private static final String DATE_FORMAT = "yyyy/MM/dd HH:mm:ss"; //$NON-NLS-1$
 
     /**
      * The task class entry name.
      */
-    private static final String TASK_CLASS_ENTRY_KEY = "class";
+    private static final String TASK_CLASS_ENTRY_KEY = "class"; //$NON-NLS-1$
 
     /**
      * The task description entry name.
      */
-    private static final String TASK_DESCRIPTION_ENTRY_KEY = "description";
+    private static final String TASK_DESCRIPTION_ENTRY_KEY = "description"; //$NON-NLS-1$
 
     /**
      * The task start time entry name.
      */
-    private static final String TASK_START_ENTRY_KEY = "start";
+    private static final String TASK_START_ENTRY_KEY = "start"; //$NON-NLS-1$
 
     /**
      * The task stop time entry name.
      */
-    private static final String TASK_STOP_ENTRY_KEY = "stop";
+    private static final String TASK_STOP_ENTRY_KEY = "stop"; //$NON-NLS-1$
 
     /**
      * The time token separator.
      */
-    private static final String TIME_SEPARATOR = ":";
+    private static final String TIME_SEPARATOR = ":"; //$NON-NLS-1$
 
     /**
      * Scheduler thread sleep time.
@@ -99,20 +112,20 @@ public final class Scheduler
     private static final long SCHEDULER_SLEEP_TIME = 100;
 
     /**
-     * The finalizer guardian.
+     * The finalize guardian.
      */
-    final Object finalizerGuardian = new Object() {
+    final Object finalizeGuardian = new Object() {
 
         /**
          * Finalizes the object by stopping the current running tasks and the scheduler process.
          *
-         * @throws java.lang.Throwable a throwable object
+         * @throws Throwable a throwable object
          *
-         * @see java.lang.Object#finalize()
+         * @see Object#finalize()
          */
         protected void finalize()
             // CHECKSTYLE:OFF
-            throws java.lang.Throwable {
+            throws Throwable {
             // CHECKSTYLE:ON
 
             try {
@@ -135,94 +148,212 @@ public final class Scheduler
     }
 
     /**
-     * Constructor that sets the file that contains the tasks information.<br>
+     * Constructor that sets the file that contains the tasks information.
      *
-     * A <code>java.lang.IllegalArgumentException</code> exception is thrown if a required key is
+     * An <code>IllegalArgumentException</code> exception is thrown if a required key is
      * missing in the configuration file or a task class could not be successfully created or a task
      * start or stop time are not valid.
      *
      * @param iniFile the file with the tasks information
      *
-     * @throws java.io.IOException an i/o exception
+     * @throws IOException an i/o exception
      */
     public Scheduler(File iniFile)
-        throws java.io.IOException {
+        throws IOException {
 
         this();
 
         // reads the configuration file
         INIFileManager ifm = new INIFileManager(iniFile);
 
-        Iterator sections = ifm.getSections().iterator();
+        Iterator<String> sections = ifm.getSections().iterator();
         while (sections.hasNext()) {
-            String taskName = (String) sections.next();
+            String taskName = sections.next();
 
             // the default section in the INI file is ignored
             if (taskName.length() == 0) {
                 continue;
             }
 
-            String taskClassName = ifm.getValue(taskName, TASK_CLASS_ENTRY_KEY);
-            if (taskClassName == null) {
-                throw new IllegalArgumentException("ERR_KEY_CLASS_NOT_FOUND");
-            }
+            String taskClassName = readClassName(ifm, taskName);
+            String taskDescription = readDescription(ifm, taskName);
+            Calendar taskStartTime = readStartTime(ifm, taskName);
+            Calendar taskStopTime = readStopTime(ifm, taskName);
 
-            String taskDescription = ifm.getValue(taskName, TASK_DESCRIPTION_ENTRY_KEY);
-            if (taskDescription == null) {
-                throw new IllegalArgumentException("ERR_KEY_DESCRIPTION_NOT_FOUND");
-            }
-
-            String tempStartTime = ifm.getValue(taskName, TASK_START_ENTRY_KEY);
-            if (tempStartTime == null) {
-                throw new IllegalArgumentException("ERR_KEY_START_NOT_FOUND");
-            }
-
-            Calendar taskStartTime = null;
-            try {
-                taskStartTime = parseTime(tempStartTime);
-            } catch (IllegalArgumentException iae) {
-                throw new IllegalArgumentException("ERR_TASK_INVALID_START_TIME", iae);
-            }
-
-            String tempStopTime = ifm.getValue(taskName, TASK_STOP_ENTRY_KEY);
-            if (tempStopTime == null) {
-                throw new IllegalArgumentException("ERR_KEY_STOP_NOT_FOUND");
-            }
-
-            Calendar taskStopTime = null;
-            try {
-                taskStopTime = parseTime(tempStopTime);
-            } catch (IllegalArgumentException iae) {
-                throw new IllegalArgumentException("ERR_TASK_INVALID_STOP_TIME", iae);
-            }
-
+            // the task is scheduled
             scheduleTask(taskName, taskClassName, taskDescription, taskStartTime, taskStopTime);
         }
     }
+
     /**
-     * Constructor that sets the file that contains the tasks information using its name.<br>
+     * Reads the task class name.
      *
-     * A <code>java.lang.IllegalArgumentException</code> exception is thrown if a required key is
+     * An <code>IllegalArgumentException</code> exception is thrown if the class name
+     * is not found in the configuration file.
+     *
+     * @param ifm the configuration file manager
+     * @param taskName the task name
+     *
+     * @return the task class name
+     */
+    private String readClassName(INIFileManager ifm, String taskName) {
+
+        String taskClassName = ifm.getValue(taskName, TASK_CLASS_ENTRY_KEY);
+        if (taskClassName == null) {
+            throw new IllegalArgumentException("SCHED_ERR_KEY_CLASS_NOT_FOUND"); //$NON-NLS-1$
+        }
+        return taskClassName;
+    }
+
+    /**
+     * Reads the task description.
+     *
+     * An <code>IllegalArgumentException</code> exception is thrown if the description
+     * is not found in the configuration file.
+     *
+     * @param ifm the configuration file manager
+     * @param taskName the task name
+     *
+     * @return the task description
+     */
+    private String readDescription(INIFileManager ifm, String taskName) {
+
+        String taskDescription = ifm.getValue(taskName, TASK_DESCRIPTION_ENTRY_KEY);
+        if (taskDescription == null) {
+            throw new IllegalArgumentException("SCHED_ERR_KEY_DESCRIPTION_NOT_FOUND"); //$NON-NLS-1$
+        }
+        return taskDescription;
+    }
+
+    /**
+     * Reads the task start time.
+     *
+     * An <code>IllegalArgumentException</code> exception is thrown if the start time
+     * is not found in the configuration file or the value is not a valid time.
+     *
+     * @param ifm the configuration file manager
+     * @param taskName the task name
+     *
+     * @return the task start time
+     */
+    private Calendar readStartTime(INIFileManager ifm, String taskName) {
+
+        String tempStartTime = ifm.getValue(taskName, TASK_START_ENTRY_KEY);
+        if (tempStartTime == null) {
+            throw new IllegalArgumentException("SCHED_ERR_KEY_START_NOT_FOUND"); //$NON-NLS-1$
+        }
+
+        return parseStartTime(tempStartTime);
+    }
+
+    /**
+     * Parses the task start time.
+     *
+     * @param timeString the task start time as a string
+     *
+     * @return the task start time
+     */
+    private Calendar parseStartTime(String timeString) {
+
+        Calendar taskStartTime = null;
+        try {
+            taskStartTime = parseTime(timeString);
+        } catch (IllegalArgumentException iae) {
+            throw new IllegalArgumentException("SCHED_ERR_TASK_INVALID_START_TIME", iae); //$NON-NLS-1$
+        }
+
+        return taskStartTime;
+    }
+
+    /**
+     * Reads the task stop time.
+     *
+     * An <code>IllegalArgumentException</code> exception is thrown if the stop time
+     * is not found in the configuration file or the value is not a valid time.
+     *
+     * @param ifm the configuration file manager
+     * @param taskName the task name
+     *
+     * @return the task stop time
+     */
+    private Calendar readStopTime(INIFileManager ifm, String taskName) {
+
+        String tempStopTime = ifm.getValue(taskName, TASK_STOP_ENTRY_KEY);
+        if (tempStopTime == null) {
+            throw new IllegalArgumentException("SCHED_ERR_KEY_STOP_NOT_FOUND"); //$NON-NLS-1$
+        }
+
+        return parseStopTime(tempStopTime);
+    }
+
+    /**
+     * Parses the task stop time.
+     *
+     * @param timeString the task stop time as a string
+     *
+     * @return the task stop time
+     */
+    private Calendar parseStopTime(String timeString) {
+
+        Calendar taskStoptTime = null;
+        try {
+            taskStoptTime = parseTime(timeString);
+        } catch (IllegalArgumentException iae) {
+            throw new IllegalArgumentException("SCHED_ERR_TASK_INVALID_STOP_TIME", iae); //$NON-NLS-1$
+        }
+
+        return taskStoptTime;
+    }
+
+    /**
+     * Constructor that sets the file that contains the tasks information using its name.
+     *
+     * An <code>IllegalArgumentException</code> exception is thrown if a required key is
      * missing in the configuration file or the task class could not be successfully created or a
      * task start or stop time are not valid.
      *
      * @param iniFileName the name of the file with the tasks information
      *
-     * @throws java.io.IOException an i/o exception
+     * @throws IOException an i/o exception
      */
     public Scheduler(String iniFileName)
-        throws java.io.IOException {
+        throws IOException {
 
         this(new File(iniFileName));
+    }
+
+    /**
+     * Starts the scheduler. The first command-line argument is the name of the file with the tasks
+     * information.
+     *
+     * @param args the array of command-line arguments
+     */
+    public static void main(String[] args) {
+
+        if (args.length != 1) {
+            info("SCHED_LOG_PARAMETER_INI_FILE"); //$NON-NLS-1$
+            return;
+        }
+
+        try {
+            Scheduler sch = new Scheduler(args[0]);
+            sch.startScheduler();
+        } catch (IOException ioe) {
+            info("SCHED_LOG_EXCEPTION_INI_FILE_MISSING"); //$NON-NLS-1$
+            return;
+        } catch (IllegalArgumentException iae) {
+            info("SCHED_LOG_EXCEPTION_INI_FILE_INVALID"); //$NON-NLS-1$
+            return;
+        }
     }
 
     /**
      * Parses a string containing a time in HH:MM:SS format. If the string equals the value in
      * <code>DAEMON_ID</code> the method returns <code>null</code>. The resulting
      * <code>java.util.Calendar</code> object date is the current date and its time is the parsed
-     * time.<br>
+     * time.
      *
-     * A <code>java.lang.IllegalArgumentException</code> exception is thrown if the input string
+     * An <code>IllegalArgumentException</code> exception is thrown if the input string
      * is not valid.
      *
      * @param timeString the string to be parsed
@@ -234,11 +365,11 @@ public final class Scheduler
      */
     static Calendar parseTime(String timeString) {
 
-        try {
-            if (timeString.equals(DAEMON_ID)) {
-                return null;
-            }
+        if (timeString.equals(DAEMON_ID)) {
+            return null;
+        }
 
+        try {
             java.util.StringTokenizer st = new java.util.StringTokenizer(timeString, TIME_SEPARATOR);
 
             Calendar retValue = Calendar.getInstance();
@@ -250,8 +381,10 @@ public final class Scheduler
 
             return retValue;
         } catch (NoSuchElementException nsee) {
+            // the exception constructor has no parameters because is catched in the callers
             throw new IllegalArgumentException(nsee);
         } catch (NumberFormatException nfe) {
+            // the exception constructor has no parameters because is catched in the callers
             throw new IllegalArgumentException(nfe);
         }
     }
@@ -289,6 +422,7 @@ public final class Scheduler
      * @see Scheduler#tasks
      */
     public List<SchedulerTask> getTasks() {
+
         return tasks;
     }
 
@@ -318,40 +452,11 @@ public final class Scheduler
 
             for (SchedulerTask task : tasks) {
                 if (task.isDaemonTask()) {
-                    if (!task.isStarting() && !task.isExecuting() && !task.isDaemonExecuted()) {
-                        task.taskStart();
-                    }
-
+                    checkDaemonStart(task);
                     continue;
                 }
 
-                if (task.getTaskNextStartTime() == null || task.getTaskNextStopTime() == null) {
-                    task.setTaskNextStartTime(task.getTaskStartTime());
-
-                    if (now.after(task.getTaskNextStartTime())) {
-                        task.getTaskNextStartTime().add(Calendar.DAY_OF_MONTH, 1);
-                    }
-
-                    task.setTaskNextStopTime(task.getTaskStopTime());
-
-                    if (task.getTaskNextStopTime().before(task.getTaskNextStartTime())) {
-                        task.getTaskNextStopTime().add(Calendar.DAY_OF_MONTH, 1);
-                    }
-                }
-
-                if (task.isExecuting()
-                    && !task.isStopping()
-                    && (now.equals(task.getTaskNextStopTime())
-                        || now.after(task.getTaskNextStopTime()))) {
-                    task.taskStop();
-                }
-
-                if (!task.isStarting()
-                    && !task.isExecuting()
-                    && (now.equals(task.getTaskNextStartTime())
-                        || now.after(task.getTaskNextStartTime()))) {
-                    task.taskStart();
-                }
+                runChecks(now, task);
             }
 
             try {
@@ -363,6 +468,90 @@ public final class Scheduler
 
         if (schedulerThread == null) {
             stopAllTasks();
+        }
+    }
+
+    /**
+     * Runs checks needed during task execution: start, stop and reschedule task checks.
+     *
+     * @param now the current time
+     * @param task the task
+     */
+    private void runChecks(Calendar now, SchedulerTask task) {
+
+        checkRescheduleTask(now, task);
+        checkStopTask(now, task);
+        checkStartTask(now, task);
+    }
+
+    /**
+     * Checks whether the task needs to be rescheduled.
+     *
+     * @param now the current time
+     * @param task the task
+     */
+    private void checkRescheduleTask(Calendar now, SchedulerTask task) {
+
+        if (task.getTaskNextStartTime() == null || task.getTaskNextStopTime() == null) {
+            task.setTaskNextStartTime(task.getTaskStartTime());
+
+            if (now.after(task.getTaskNextStartTime())) {
+                task.getTaskNextStartTime().add(Calendar.DAY_OF_MONTH, 1);
+            }
+
+            task.setTaskNextStopTime(task.getTaskStopTime());
+
+            if (task.getTaskNextStopTime().before(task.getTaskNextStartTime())) {
+                task.getTaskNextStopTime().add(Calendar.DAY_OF_MONTH, 1);
+            }
+
+            info("SCHED_LOG_TASK_SCHEDULED"); //$NON-NLS-1$
+        }
+    }
+
+    /**
+     * Checks whether the task needs to be stopped.
+     *
+     * @param now the current time
+     * @param task the task
+     */
+    private void checkStopTask(Calendar now, SchedulerTask task) {
+
+        if (task.isExecuting()
+            && !task.isStopping()
+            && (now.equals(task.getTaskNextStopTime())
+                || now.after(task.getTaskNextStopTime()))) {
+            task.taskStop();
+        }
+    }
+
+    /**
+     * Checks whether the task needs to be started.
+     *
+     * @param now the current time
+     * @param task the task
+     */
+    private void checkStartTask(Calendar now, SchedulerTask task) {
+
+        if (!task.isStarting()
+            && !task.isExecuting()
+            && (now.equals(task.getTaskNextStartTime())
+                || now.after(task.getTaskNextStartTime()))) {
+            task.taskStart();
+        }
+    }
+
+    /**
+     * Checks whether a daemon task needs to be started.
+     *
+     * @param task the task
+     */
+    private void checkDaemonStart(SchedulerTask task) {
+
+        if (!task.isStarting() && !task.isExecuting() && !task.isDaemonExecuted()) {
+            info("SCHED_LOG_DAEMON_SCHEDULED"); //$NON-NLS-1$
+
+            task.taskStart();
         }
     }
 
@@ -416,9 +605,9 @@ public final class Scheduler
 
     /**
      * Schedules a new task or re-schedules an existing task. If the task exists and it is running,
-     * the method does nothing.<br>
+     * the method does nothing.
      *
-     * A <code>java.lang.IllegalArgumentException</code> exception is thrown if the task class
+     * An <code>IllegalArgumentException</code> exception is thrown if the task class
      * could not be successfully created.
      *
      * @param taskName the task name
@@ -427,36 +616,17 @@ public final class Scheduler
      * @param taskStartTime the task start time
      * @param taskStopTime the task stop time
      */
-    public void scheduleTask(String taskName, Class taskClass, String taskDescription,
+    public void scheduleTask(String taskName, Class<?> taskClass, String taskDescription,
                              Calendar taskStartTime, Calendar taskStopTime) {
 
         synchronized (tasks) {
-            for (SchedulerTask task : tasks) {
-                if (task.getTaskName().equals(taskName)) {
-                    if (!task.isStarting() && !task.isExecuting()) {
-                        if (taskStartTime == null) {
-                            task.setTaskStartTime(null);
-                            task.setTaskStopTime(null);
-                            task.setTaskNextStartTime(null);
-                            task.setTaskNextStopTime(null);
-                            task.setDaemonTask(true);
-                            task.setDaemonExecuted(false);
-                        } else {
-                            task.setTaskStartTime(taskStartTime);
-                            task.setTaskStopTime(taskStopTime);
-                            task.setTaskNextStartTime(null);
-                            task.setTaskNextStopTime(null);
-                            task.setDaemonTask(false);
-                            task.setDaemonExecuted(false);
-                        }
-                    }
-
-                    return;
-                }
+            if (rescheduleIfExist(taskName, taskStartTime, taskStopTime)) {
+                return;
             }
 
+            // the task is new
             if (taskClass == null || taskDescription == null || taskDescription.length() == 0) {
-                throw new IllegalArgumentException("ERR_TASK_INCOMPLETE");
+                throw new IllegalArgumentException("SCHED_ERR_TASK_INCOMPLETE"); //$NON-NLS-1$
             }
 
             try {
@@ -475,22 +645,60 @@ public final class Scheduler
                 tasks.add(task);
 
             } catch (NoSuchMethodException nsme) {
-                throw new IllegalArgumentException("ERR_TASK_CLASS_INVALID", nsme);
+                throw new IllegalArgumentException("SCHED_ERR_TASK_CLASS_INVALID", nsme); //$NON-NLS-1$
             } catch (InstantiationException ie) {
-                throw new IllegalArgumentException("ERR_TASK_CLASS_INVALID", ie);
+                throw new IllegalArgumentException("SCHED_ERR_TASK_CLASS_INVALID", ie); //$NON-NLS-1$
             } catch (IllegalAccessException iae) {
-                throw new IllegalArgumentException("ERR_TASK_CLASS_INVALID", iae);
-            } catch (java.lang.reflect.InvocationTargetException ite) {
-                throw new IllegalArgumentException("ERR_TASK_CLASS_INVALID", ite);
+                throw new IllegalArgumentException("SCHED_ERR_TASK_CLASS_INVALID", iae); //$NON-NLS-1$
+            } catch (InvocationTargetException ite) {
+                throw new IllegalArgumentException("SCHED_ERR_TASK_CLASS_INVALID", ite); //$NON-NLS-1$
             }
         }
     }
 
     /**
-     * Schedules a new task or re-schedules an existing task. If the task exists and it is running,
-     * the method does nothing. THe class is loaded using the shceduler class loader.<br>
+     * Checks for the existence of a given task by name and re-schedules it.
      *
-     * A <code>java.lang.IllegalArgumentException</code> exception is thrown if the task class
+     * @param taskName the task name
+     * @param taskStartTime the task start time
+     * @param taskStopTime the task stop time
+     *
+     * @return <code>true</code> if the task existed and was rescheduled
+     */
+    private boolean rescheduleIfExist(String taskName, Calendar taskStartTime, Calendar taskStopTime) {
+
+        for (SchedulerTask task : tasks) {
+            if (task.getTaskName().equals(taskName)) {
+                if (!task.isStarting() && !task.isExecuting()) {
+                    if (taskStartTime == null) {
+                        task.setTaskStartTime(null);
+                        task.setTaskStopTime(null);
+                        task.setTaskNextStartTime(null);
+                        task.setTaskNextStopTime(null);
+                        task.setDaemonTask(true);
+                        task.setDaemonExecuted(false);
+                    } else {
+                        task.setTaskStartTime(taskStartTime);
+                        task.setTaskStopTime(taskStopTime);
+                        task.setTaskNextStartTime(null);
+                        task.setTaskNextStopTime(null);
+                        task.setDaemonTask(false);
+                        task.setDaemonExecuted(false);
+                    }
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Schedules a new task or re-schedules an existing task. If the task exists and it is running,
+     * the method does nothing. The class is loaded using the scheduler class loader.
+     *
+     * An <code>IllegalArgumentException</code> exception is thrown if the task class
      * could not be successfully created.
      *
      * @param taskName the task name
@@ -506,16 +714,16 @@ public final class Scheduler
 
         synchronized (tasks) {
             if (taskClassName == null || taskClassName.length() == 0) {
-                throw new IllegalArgumentException("ERR_TASK_INCOMPLETE");
+                throw new IllegalArgumentException("SCHED_ERR_TASK_INCOMPLETE"); //$NON-NLS-1$
             }
 
             try {
-                Class taskClass = Class.forName(taskClassName, true, schedulerClassLoader);
+                Class<?> taskClass = Class.forName(taskClassName, true, schedulerClassLoader);
 
                 scheduleTask(taskName, taskClass, taskDescription, taskStartTime, taskStopTime);
 
             } catch (ClassNotFoundException cnfe) {
-                throw new IllegalArgumentException("ERR_TASK_NOT_FOUND", cnfe);
+                throw new IllegalArgumentException("SCHED_ERR_TASK_NOT_FOUND", cnfe); //$NON-NLS-1$
             }
         }
     }
@@ -574,5 +782,14 @@ public final class Scheduler
                 }
             }
         }
+    }
+
+    /**
+     * Dummy log method.
+     *
+     * @param message the log message
+     */
+    private static void info(String message) {
+        System.out.println(message);
     }
 }

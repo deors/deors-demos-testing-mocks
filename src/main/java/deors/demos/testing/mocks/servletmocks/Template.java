@@ -11,13 +11,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Loads and processes templates.<br>
+ * Loads and processes templates.
  *
  * A template is a collection of strings with special tokens that can be substituted by replacements
- * using the token content as the key for substitutions.<br>
+ * using the token content as the key for substitutions.
  *
- * @author jorge.hidalgo
- * @version 2.3
+ * @author deors
+ * @version 1.0
  */
 public final class Template {
 
@@ -95,13 +95,13 @@ public final class Template {
         } catch (IOException ioe) {
             templateContents = null;
 
-            throw new TemplateException("ERR_NOT_LOADED", ioe);
+            throw new TemplateException("TMPL_ERR_NOT_LOADED", ioe); //$NON-NLS-1$
         } finally {
             if (templateReader != null) {
                 try {
                     templateReader.close();
                 } catch (IOException ioe) {
-                    throw new TemplateException("ERR_NOT_CLOSED", ioe);
+                    throw new TemplateException("TMPL_ERR_NOT_CLOSED", ioe); //$NON-NLS-1$
                 }
             }
         }
@@ -128,7 +128,7 @@ public final class Template {
     public List<String> processTemplate(Map<String, String> replacements) throws TemplateException {
 
         if (templateContents == null) {
-            throw new TemplateException("ERR_NEED_LOAD");
+            throw new TemplateException("TMPL_ERR_NEED_LOAD"); //$NON-NLS-1$
         }
 
         List<String> processedContents = new ArrayList<String>();
@@ -148,16 +148,21 @@ public final class Template {
                     StringBuffer newLine = new StringBuffer();
 
                     while ((startPos = line.indexOf(TEMPLATE_TAG_START)) != -1) {
+                        // two tag start characters together mean
+                        // that this is not a token definition
                         if (line.substring(startPos + 1, startPos + 2).toCharArray()[0]
                                 == TEMPLATE_TAG_START) {
                             newLine.append(line.substring(0, startPos + 2));
                             line = line.substring(startPos + 2);
                         } else {
+                            // when the tag end character is not found mean
+                            // that this is not a token definition
                             int endPos = line.indexOf(TEMPLATE_TAG_END, startPos);
                             if (endPos == -1) {
                                 break;
                             }
 
+                            // searches the replacement
                             String tokenName = line.substring(startPos + 1, endPos);
                             String replacement = replacements.get(tokenName);
 
