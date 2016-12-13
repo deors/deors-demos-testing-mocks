@@ -23,19 +23,17 @@
         <spring.version>3.0.6.RELEASE</spring.version>
 
         <junit.version>4.12</junit.version>
-        <easymock.version>3.3.1</easymock.version>
-        <powermock.version>1.6.2</powermock.version>
+        <easymock.version>3.4</easymock.version>
+        <powermock.version>1.6.6</powermock.version>
 
-        <jacoco.version>0.7.5.201505241946</jacoco.version>
+        <jacoco.version>0.7.6.201602180812</jacoco.version>
         <jacoco.path>${settings.localRepository}/org/jacoco/org.jacoco.agent/${jacoco.version}/org.jacoco.agent-${jacoco.version}-runtime.jar</jacoco.path>
         <jacoco.utReport>${project.build.directory}/jacoco.exec</jacoco.utReport>
         <jacoco.itReport>${project.build.directory}/jacoco-it.exec</jacoco.itReport>
         <jacoco.utAgentConfig>-javaagent:${jacoco.path}=destfile=${jacoco.utReport}</jacoco.utAgentConfig>
         <jacoco.itAgentConfig>-javaagent:${jacoco.path}=destfile=${jacoco.itReport}</jacoco.itAgentConfig>
 
-        <jacoco-listeners.version>3.5</jacoco-listeners.version>
-
-        <sonar.jacoco.itReportPath>${jacoco.itReport}</sonar.jacoco.itReportPath>
+        <jacoco-listeners.version>4.3.0.7717</jacoco-listeners.version>
     </properties>
 
     <build>
