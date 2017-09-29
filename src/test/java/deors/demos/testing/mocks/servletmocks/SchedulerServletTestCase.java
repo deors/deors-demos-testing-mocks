@@ -7,8 +7,11 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -1532,6 +1535,67 @@ public class SchedulerServletTestCase {
          */
         private static void info(String message) {
             System.out.println(message);
+        }
+    }
+
+    public static class IOToolkit {
+
+        public static byte[] readStream(InputStream is, int bufferSize)
+            throws IOException {
+
+            BufferedInputStream bis = null;
+
+            try {
+                bis = new BufferedInputStream(is, bufferSize);
+
+                long length = bis.available();
+
+                // the byte array length must be a valid integer number
+                if (length > Integer.MAX_VALUE) {
+                    throw new IllegalArgumentException("IOTK_ERR_STREAM_TOO_LONG"); //$NON-NLS-1$
+                }
+
+                byte[] bytes = new byte[(int) length];
+
+                // the file is read into the byte array
+                int bytesRead = bis.read(bytes);
+
+                if (bytesRead != length) {
+                    throw new IOException("IOTK_ERR_STREAM_UNREADABLE"); //$NON-NLS-1$
+                }
+
+                return bytes;
+            } finally {
+                if (bis != null) {
+                    bis.close();
+                }
+            }
+        }
+
+        public static byte[] readStream(InputStream is)
+            throws IOException {
+
+            return readStream(is, 4096);
+        }
+
+        public static byte[] readFile(File file, int bufferSize)
+            throws IOException {
+
+            FileInputStream fis = null;
+            try {
+                fis = new FileInputStream(file);
+                return readStream(fis, bufferSize);
+            } finally {
+                if (fis != null) {
+                    fis.close();
+                }
+            }
+        }
+
+        public static byte[] readFile(File file)
+            throws IOException {
+
+            return readFile(file, 4096);
         }
     }
 }

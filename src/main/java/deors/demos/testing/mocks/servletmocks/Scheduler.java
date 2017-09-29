@@ -323,31 +323,6 @@ public final class Scheduler
     }
 
     /**
-     * Starts the scheduler. The first command-line argument is the name of the file with the tasks
-     * information.
-     *
-     * @param args the array of command-line arguments
-     */
-    public static void main(String[] args) {
-
-        if (args.length != 1) {
-            info("SCHED_LOG_PARAMETER_INI_FILE"); //$NON-NLS-1$
-            return;
-        }
-
-        try {
-            Scheduler sch = new Scheduler(args[0]);
-            sch.startScheduler();
-        } catch (IOException ioe) {
-            info("SCHED_LOG_EXCEPTION_INI_FILE_MISSING"); //$NON-NLS-1$
-            return;
-        } catch (IllegalArgumentException iae) {
-            info("SCHED_LOG_EXCEPTION_INI_FILE_INVALID"); //$NON-NLS-1$
-            return;
-        }
-    }
-
-    /**
      * Parses a string containing a time in HH:MM:SS format. If the string equals the value in
      * <code>DAEMON_ID</code> the method returns <code>null</code>. The resulting
      * <code>java.util.Calendar</code> object date is the current date and its time is the parsed
@@ -390,31 +365,6 @@ public final class Scheduler
     }
 
     /**
-     * Returns the task with the given name. If the task does not exist, the method returns
-     * <code>null</code>.
-     *
-     * @return the task with the given name or <code>null</code> if a task with the given name
-     *         does not exist
-     *
-     * @param taskName the task name
-     *
-     * @see Scheduler#tasks
-     * @see Scheduler#existsTask(String)
-     * @see Scheduler#getTasks()
-     */
-    public SchedulerTask getTask(String taskName) {
-
-        synchronized (tasks) {
-            for (SchedulerTask task : tasks) {
-                if (task.getTaskName().equals(taskName)) {
-                    return task;
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
      * Returns the <code>task</code> property value.
      *
      * @return the property value
@@ -424,17 +374,6 @@ public final class Scheduler
     public List<SchedulerTask> getTasks() {
 
         return tasks;
-    }
-
-    /**
-     * Changes the scheduler class loader.
-     *
-     * @param schedulerClassLoader the new class loader instance
-     *
-     * @see Scheduler#schedulerClassLoader
-     */
-    public void setSchedulerClassLoader(ClassLoader schedulerClassLoader) {
-        this.schedulerClassLoader = schedulerClassLoader;
     }
 
     /**
