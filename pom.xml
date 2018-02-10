@@ -5,12 +5,18 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <name>deors.demos.testing.mocks</name>
     <groupId>deors.demos</groupId>
-    <artifactId>deors.demos.testing.mocks</artifactId>
+    <artifactId>deors-demos-testing-mocks</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
+    <name>deors-demos-testing-mocks</name>
+    <description>
+        Demonstration of Java unit test scenarios that would require mocks
+        to be properly executed, including use cases with
+        JUnit, EasyMock, PowerMock and JMockit
+    </description>
+    
     <properties>
         <project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
 
